@@ -30,6 +30,7 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/decred/dcrd/dcrec/secp256k1"
 	"github.com/miekg/pkcs11"
 	"github.com/pkg/errors"
 )
@@ -38,7 +39,7 @@ import (
 // unsupported by crypto11 is specified.  Note that the error behavior
 // for an elliptic curve unsupported by the underlying PKCS#11
 // implementation will be different.
-var errUnsupportedEllipticCurve = errors.New("unsupported elliptic curve")
+var errUnsupportedEllipticCurve = errors.New("unsupported elliptic curve!!!")
 
 // pkcs11PrivateKeyECDSA contains a reference to a loaded PKCS#11 ECDSA private key object.
 type pkcs11PrivateKeyECDSA struct {
@@ -96,6 +97,10 @@ var wellKnownCurves = map[string]curveInfo{
 	"K-163": {
 		mustMarshal(asn1.ObjectIdentifier{1, 3, 132, 0, 1}),
 		nil,
+	},
+	"K-256": {
+		mustMarshal(asn1.ObjectIdentifier{1, 3, 132, 0, 10}),
+		secp256k1.S256().CurveParams,
 	},
 	"K-233": {
 		mustMarshal(asn1.ObjectIdentifier{1, 3, 132, 0, 26}),
@@ -172,6 +177,11 @@ func unmarshalEcPoint(b []byte, c elliptic.Curve) (*big.Int, *big.Int, error) {
 
 	x, y := elliptic.Unmarshal(c, pointBytes)
 	if x == nil || y == nil {
+		key, err := secp256k1.ParsePubKey(pointBytes)
+		if err != nil {
+			return nil, nil, err
+		}
+		return key.X, key.Y, nil
 		return nil, nil, errors.New("failed to parse elliptic curve point")
 	}
 	return x, y, nil
